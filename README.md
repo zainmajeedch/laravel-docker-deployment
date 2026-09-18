@@ -1,92 +1,317 @@
-# Laravel Docker Project
+# Laravel Docker Deployment
 
-A production-style Laravel application running in Docker using Docker Compose.
+A Laravel 13 application containerized with Docker and deployed locally using a production Docker Compose configuration and images hosted on GitHub Container Registry (GHCR).
 
 ## Stack
 
-- Laravel 13.26.1
-- PHP 8.4-FPM
-- Nginx 1.31
-- MariaDB 11
-- Redis
-- Docker Compose
+* Laravel 13.26.1
+* PHP 8.4-FPM
+* Nginx 1.31
+* MariaDB 11
+* Redis
+* Docker
+* Docker Compose
+* GitHub Container Registry (GHCR)
 
 ## Architecture
 
 ```text
-Browser
-   |
-   | HTTP :8082
-   v
- Nginx
-   |
-   | FastCGI :9000
-   v
- PHP-FPM
-   |
-   +----> MariaDB
-   |
-   +----> Redis
-
-
-
-
-
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+                         Browser
+                            |
+                            | HTTP :8082
+                            v
+                  +-------------------+
+                  |   Nginx Container |
+                  |      Port 80      |
+                  +---------+---------+
+                            |
+                            | FastCGI :9000
+                            v
+                  +-------------------+
+                  | PHP-FPM Container |
+                  | Laravel + PHP 8.4 |
+                  +---------+---------+
+                            |
+                  +---------+---------+
+                  |                   |
+                  v                   v
+          +-------------+       +-----------+
+          |   MariaDB   |       |   Redis   |
+          |   Database  |       |   Cache   |
+          +-------------+       +-----------+
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Docker Images
 
-## Contributing
+The application uses two custom Docker images.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### PHP / Laravel Image
 
-## Code of Conduct
+```text
+ghcr.io/zainmajeedch/laravel-docker-php:1.0
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+This image contains:
 
-## Security Vulnerabilities
+* PHP 8.4-FPM
+* Required PHP extensions
+* Composer
+* Laravel application
+* Production Composer dependencies
+* Laravel storage permissions
+* PHP-FPM running on port 9000
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Nginx Image
 
-## License
+```text
+ghcr.io/zainmajeedch/laravel-docker-nginx:1.0
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This image contains:
+
+* Nginx
+* Laravel Nginx configuration
+* Laravel `public` directory
+
+Nginx serves the web application and forwards PHP requests to the PHP-FPM container.
+
+## GHCR
+
+The custom Docker images are stored in GitHub Container Registry.
+
+PHP / Laravel:
+
+```text
+ghcr.io/zainmajeedch/laravel-docker-php:1.0
+```
+
+Nginx:
+
+```text
+ghcr.io/zainmajeedch/laravel-docker-nginx:1.0
+```
+
+The production Compose configuration pulls these images from GHCR instead of building them locally.
+
+## Production Compose
+
+The production deployment is defined in:
+
+```text
+compose.prod.yaml
+```
+
+The production Compose file uses the following services:
+
+* `php`
+* `nginx`
+* `mariadb`
+* `redis`
+
+The PHP and Nginx services use the custom images hosted on GHCR.
+
+```yaml
+php:
+  image: ghcr.io/zainmajeedch/laravel-docker-php:1.0
+
+nginx:
+  image: ghcr.io/zainmajeedch/laravel-docker-nginx:1.0
+```
+
+## Network
+
+All application services communicate through the Docker network:
+
+```text
+laravel-network
+```
+
+Docker Compose service names are used for internal communication.
+
+For example:
+
+```text
+DB_HOST=mariadb
+REDIS_HOST=redis
+```
+
+Nginx communicates with PHP-FPM using:
+
+```text
+php:9000
+```
+
+## Volumes
+
+Named Docker volumes are used for persistent application data:
+
+```text
+laravel_storage
+laravel_mariadb_data
+laravel_redis_data
+```
+
+The MariaDB volume persists database data, while the storage volume persists Laravel application storage.
+
+## Production Configuration
+
+The production Compose configuration sets:
+
+```text
+APP_ENV=production
+APP_DEBUG=false
+```
+
+The application uses:
+
+```text
+Database: MariaDB
+Cache: Redis
+Sessions: Database
+Queue: Database
+```
+
+The application key is supplied through the `APP_KEY` environment variable rather than being stored directly in the Compose file.
+
+## Running the Production Deployment
+
+Make sure Docker is running.
+
+From the project directory:
+
+```bash
+docker compose -f compose.prod.yaml up -d
+```
+
+Check the containers:
+
+```bash
+docker compose -f compose.prod.yaml ps
+```
+
+The application should be available at:
+
+```text
+http://localhost:8082
+```
+
+## Verification
+
+### Check HTTP response
+
+```bash
+curl -I http://localhost:8082
+```
+
+A successful deployment returns:
+
+```text
+HTTP/1.1 200 OK
+```
+
+### Check Laravel information
+
+```bash
+docker exec laravel-php php artisan about
+```
+
+This can be used to verify the Laravel environment, PHP version, database, cache, and production configuration.
+
+### Optimize Laravel
+
+```bash
+docker exec laravel-php php artisan optimize
+```
+
+This caches Laravel configuration, events, routes, and views for the production deployment.
+
+### Check database connection
+
+```bash
+docker exec laravel-php php artisan db:show
+```
+
+This verifies that Laravel can connect to the MariaDB service.
+
+### Check migrations
+
+```bash
+docker exec laravel-php php artisan migrate:status
+```
+
+## Docker Build and GHCR Workflow
+
+The project follows this workflow:
+
+```text
+Laravel Source Code
+        |
+        v
+Dockerfile
+        |
+        v
+Build Docker Image
+        |
+        v
+Tag Image
+        |
+        v
+Push Image to GHCR
+        |
+        v
+Production Compose
+        |
+        v
+Pull GHCR Images
+        |
+        v
+Run Production Containers
+        |
+        v
+Verify Application
+```
+
+## `.dockerignore`
+
+The project includes a `.dockerignore` file to prevent unnecessary or sensitive files from being included in the Docker build context.
+
+Important excluded files/directories include:
+
+```text
+.env
+.env.*
+vendor
+node_modules
+.git
+.github
+```
+
+Production dependencies are installed during the Docker image build.
+
+## Project Files
+
+Important Docker-related files:
+
+```text
+docker/
+├── php/
+│   └── Dockerfile
+└── nginx/
+    ├── Dockerfile
+    └── default.conf
+
+compose.prod.yaml
+.dockerignore
+README.md
+```
+
+## Result
+
+The Laravel application was successfully:
+
+1. Containerized with Docker.
+2. Packaged into a custom PHP/Laravel Docker image.
+3. Packaged into a custom Nginx Docker image.
+4. Pushed to GitHub Container Registry.
+5. Deployed locally using the production Compose configuration.
+6. Verified through HTTP, Laravel, container health, and database checks.
