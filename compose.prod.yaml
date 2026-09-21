@@ -2,7 +2,6 @@ services:
 
   php:
     image: ghcr.io/zainmajeedch/laravel-docker-php:1.0
-    container_name: laravel-php
     restart: unless-stopped
     environment:
       APP_ENV: production
