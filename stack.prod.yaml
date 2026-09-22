@@ -1,0 +1,75 @@
+services:
+
+  php:
+    image: ghcr.io/zainmajeedch/laravel-docker-php:1.0
+
+    environment:
+      APP_DEBUG: "false"
+      APP_ENV: production
+      APP_KEY: base64:Y5q2Fd1OVGyc5CrjPyURKPV8zK4zazlKSP5kpePVdyQ=
+      APP_URL: http://localhost:8082
+
+      CACHE_STORE: redis
+
+      DB_CONNECTION: mysql
+      DB_DATABASE: laravel
+      DB_HOST: mariadb
+      DB_PASSWORD: laravel_password
+      DB_PORT: "3306"
+      DB_USERNAME: laravel
+
+      QUEUE_CONNECTION: database
+
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+
+      SESSION_DRIVER: database
+
+    networks:
+      - laravel-network
+
+    volumes:
+      - laravel_storage:/var/www/html/storage
+
+    deploy:
+      replicas: 2
+
+      labels:
+        swarm.autoscaler.enabled: "true"
+        swarm.autoscaler.min: "2"
+        swarm.autoscaler.max: "5"
+        swarm.autoscaler.metric: "cpu"
+        swarm.autoscaler.target: "70"
+
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+
+      restart_policy:
+        condition: on-failure
+
+    healthcheck:
+      test:
+        - CMD
+        - php-fpm
+        - -t
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+
+networks:
+
+  laravel-network:
+    external: true
+    name: laravel-swarm-network
+
+
+volumes:
+
+  laravel_storage:
+    external: true
+    name: laravel-docker_laravel_storage
