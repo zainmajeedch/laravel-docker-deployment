@@ -1,7 +1,7 @@
 services:
 
   php:
-    image: ghcr.io/zainmajeedch/laravel-docker-php:1.0
+    image: ghcr.io/zainmajeedch/laravel-docker-php:1.1
 
     environment:
       APP_DEBUG: "false"
@@ -33,14 +33,14 @@ services:
       - laravel_storage:/var/www/html/storage
 
     deploy:
-      replicas: 2
+      replicas: 1
 
       labels:
         swarm.autoscaler.enabled: "true"
-        swarm.autoscaler.min: "2"
+        swarm.autoscaler.min: "1"
         swarm.autoscaler.max: "5"
         swarm.autoscaler.metric: "cpu"
-        swarm.autoscaler.target: "70"
+        swarm.autoscaler.target: "50"
 
       resources:
         limits:
@@ -61,8 +61,80 @@ services:
       start_period: 10s
 
 
-networks:
+  nginx:
+    image: ghcr.io/zainmajeedch/laravel-docker-nginx:2.0
 
+    ports:
+      - "8082:80"
+
+    networks:
+      - laravel-network
+
+    volumes:
+      - laravel_storage:/var/www/html/storage:ro
+
+    deploy:
+      replicas: 1
+
+      restart_policy:
+        condition: on-failure
+
+  mariadb:
+    image: mariadb:11
+
+    environment:
+      MARIADB_DATABASE: laravel
+      MARIADB_USER: laravel
+      MARIADB_PASSWORD: laravel_password
+      MARIADB_ROOT_PASSWORD: root_password
+
+    networks:
+      - laravel-network
+
+    volumes:
+      - laravel_mariadb_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+
+  redis:
+    image: redis:alpine
+
+    networks:
+      - laravel-network
+
+    volumes:
+      - laravel_redis_data:/data
+
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+networks:
   laravel-network:
     external: true
     name: laravel-swarm-network
@@ -73,3 +145,11 @@ volumes:
   laravel_storage:
     external: true
     name: laravel-docker_laravel_storage
+
+  laravel_mariadb_data:
+    external: true
+    name: laravel-docker_laravel_mariadb_data
+
+  laravel_redis_data:
+    external: true
+    name: laravel-docker_laravel_redis_data
